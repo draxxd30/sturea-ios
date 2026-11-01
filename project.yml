@@ -53,4 +53,4 @@ targets:
           - UIInterfaceOrientationPortrait
         UIRequiresFullScreen: true
         UIStatusBarStyle: UIStatusBarStyleDefault
-        SturApiBaseURL: $(API_BASE_URL)
+        SturApiBaseURL: $(https://kqylabfllurrrcecxxxy.supabase.co/functions/v1/grades-api)
