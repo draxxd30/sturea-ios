@@ -1,0 +1,63 @@
+name: Build iOS (.ipa sin firmar)
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Instalar XcodeGen
+        run: brew install xcodegen
+
+      - name: Generar proyecto Xcode
+        run: xcodegen generate
+
+      - name: Versiones (para depurar)
+        run: |
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+
+      - name: Compilar (sin firma)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project Sturea.xcodeproj \
+            -scheme Sturea \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            clean build | tee build.log | tail -n 80
+
+      - name: Empaquetar .ipa
+        run: |
+          APP=$(find build/Build/Products -maxdepth 2 -name "Sturea.app" | head -n 1)
+          test -n "$APP" || { echo "No se encontró Sturea.app"; exit 1; }
+          rm -rf Payload Sturea.ipa
+          mkdir Payload
+          cp -R "$APP" Payload/
+          zip -qry Sturea.ipa Payload
+          ls -lh Sturea.ipa
+
+      - name: Subir .ipa
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sturea-ipa
+          path: Sturea.ipa
+          if-no-files-found: error
+
+      - name: Subir log de compilación (si falla)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
